@@ -1,12 +1,13 @@
 import os
 import io
 import re
+import sys
+import subprocess
 import zipfile
 import threading
 import uuid
 import time
 from flask import Flask, render_template, request, jsonify, send_file
-import yt_dlp
 
 # Дозволені хости для завантаження (SSRF-захист)
 _ALLOWED_HOSTS_RE = re.compile(
@@ -75,72 +76,59 @@ DEFAULT_QUALITY = "720"
 
 
 def _run_download(job_id: str, url: str, quality: str = DEFAULT_QUALITY, index: int = 1):
+    """Запускає yt-dlp як subprocess — SEGV в C-бібліотеці не вбиває Flask."""
     fmt, merge_fmt, audio_only = QUALITY_FORMATS.get(quality, QUALITY_FORMATS[DEFAULT_QUALITY])
     folder  = SERVE_FOLDER
     outtmpl = os.path.join(folder, f"{index} - %(title)s.%(ext)s")
 
-    def progress_hook(d):
-        if d["status"] == "downloading":
-            pct = d.get("_percent_str", "").strip()
-            with _jobs_lock:
-                _jobs[job_id]["progress"] = pct
-                info = d.get("info_dict") or {}
-                if info.get("title"):
-                    _jobs[job_id]["title"] = info["title"]
-        elif d["status"] == "finished":
-            with _jobs_lock:
-                _jobs[job_id]["progress"] = "100%"
-            fp = d.get("filename") or ""
-            if fp and os.path.isfile(fp):
-                with _jobs_lock:
-                    _jobs[job_id]["filepath"] = fp
-
-    opts: dict = {
-        "format": fmt,
-        "outtmpl": outtmpl,
-        "progress_hooks": [progress_hook],
-        "quiet": True,
-        "no_warnings": True,
-        "noplaylist": True,
-        "merge_output_format": merge_fmt,
-        "format_sort": ["vcodec:h264", "acodec:aac"],
-    }
-
+    cmd = [
+        sys.executable, "-m", "yt_dlp",
+        "--format", fmt,
+        "--output", outtmpl,
+        "--no-playlist",
+        "--newline",
+        "--format-sort", "vcodec:h264,acodec:aac",
+    ]
     if audio_only:
-        opts["postprocessors"] = [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "320",
-        }]
+        cmd += ["--extract-audio", "--audio-format", "mp3", "--audio-quality", "320K"]
+    else:
+        cmd += ["--merge-output-format", merge_fmt]
+    cmd.append(url)
 
     try:
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            title = (info or {}).get("title", url)
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        for line in proc.stdout:
+            m = re.search(r'\[download\]\s+([\d.]+)%', line)
+            if m:
+                with _jobs_lock:
+                    _jobs[job_id]["progress"] = f"{float(m.group(1)):.0f}%"
+        proc.wait()
 
-            # Resolve the exact output path yt-dlp wrote
-            filepath = ""
-            if info:
-                try:
-                    expected = ydl.prepare_filename(info)
-                    base = os.path.splitext(expected)[0]
-                    # After merge / postprocessor the extension changes
-                    ext = "mp3" if audio_only else merge_fmt
-                    for candidate in (base + "." + ext, expected):
-                        if os.path.isfile(candidate):
-                            filepath = candidate
-                            break
-                except Exception:
-                    pass
-            if not filepath:
-                filepath = _find_file(folder, index)
-
+        if proc.returncode != 0:
             with _jobs_lock:
-                _jobs[job_id]["status"]   = "done"
-                _jobs[job_id]["title"]    = title
-                _jobs[job_id]["progress"] = "100%"
-                # always overwrite: stale intermediate path from hook must not survive
-                _jobs[job_id]["filepath"] = filepath
+                _jobs[job_id]["status"] = "error"
+                _jobs[job_id]["error"]  = f"yt-dlp завершився з кодом {proc.returncode}"
+            return
+
+        filepath = _find_file(folder, index)
+        title = url
+        if filepath:
+            base = os.path.splitext(os.path.basename(filepath))[0]
+            prefix = f"{index} - "
+            title = base[len(prefix):] if base.startswith(prefix) else base
+
+        with _jobs_lock:
+            _jobs[job_id]["status"]   = "done"
+            _jobs[job_id]["title"]    = title
+            _jobs[job_id]["progress"] = "100%"
+            _jobs[job_id]["filepath"] = filepath
+
     except Exception as exc:
         with _jobs_lock:
             _jobs[job_id]["status"] = "error"
