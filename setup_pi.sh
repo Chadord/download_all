@@ -13,7 +13,7 @@ apt-get install -y python3 python3-pip python3-venv ffmpeg git avahi-daemon
 
 echo "=== 2. Клонування репозиторію ==="
 if [ ! -d "$APP_DIR" ]; then
-  git clone https://github.com/YOUR_USER/YOUR_REPO.git "$APP_DIR"
+  git clone https://github.com/Chadord/download_all.git "$APP_DIR"
 else
   echo "Директорія вже є, оновлюємо..."
   git -C "$APP_DIR" pull
