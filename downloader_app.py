@@ -15,7 +15,7 @@ _ALLOWED_HOSTS_RE = re.compile(
     r'(?:(?:www\.)?youtube\.com|youtu\.be'
     r'|(?:www\.)?tiktok\.com'
     r'|(?:www\.)?instagram\.com'
-    r'|(?:www\.)?pinterest\.com'
+    r'|(?:(?:[a-z]{2}|www)\.)?pinterest\.com'
     r'|(?:www\.)?twitter\.com|(?:www\.)?x\.com'
     r'|(?:www\.)?vimeo\.com'
     r'|(?:www\.)?twitch\.tv'
@@ -128,6 +128,18 @@ def _run_download(job_id: str, url: str, quality: str = DEFAULT_QUALITY, index: 
             _jobs[job_id]["title"]    = title
             _jobs[job_id]["progress"] = "100%"
             _jobs[job_id]["filepath"] = filepath
+
+        # Авто-видалення файлу через 1 годину після завантаження
+        if filepath:
+            def _delete_after_ttl(path=filepath, jid=job_id):
+                time.sleep(3600)
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
+                with _jobs_lock:
+                    _jobs.pop(jid, None)
+            threading.Thread(target=_delete_after_ttl, daemon=True).start()
 
     except Exception as exc:
         with _jobs_lock:
