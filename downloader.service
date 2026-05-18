@@ -1,0 +1,16 @@
+[Unit]
+Description=YouTube Downloader Web App
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/ytdl
+ExecStart=/home/pi/ytdl/venv/bin/python downloader_app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

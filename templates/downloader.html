@@ -1,0 +1,348 @@
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YouTube Downloader</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬇️</text></svg>">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0f0f0f;color:#e8e8e8;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px;overflow-x:hidden}
+    h1{font-size:1.4rem;font-weight:600;margin-bottom:24px;color:#fff;letter-spacing:-.3px}
+    .card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:22px 22px 18px;width:100%;max-width:640px}
+    .section-label{font-size:.72rem;color:#666;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+    .quality-picker{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+    .q-btn{flex:1 1 auto;min-width:52px;padding:7px 8px;background:#111;border:1px solid #333;border-radius:7px;color:#888;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+    .q-btn:hover{border-color:#ff4444;color:#fff}
+    .q-btn.active{background:#ff4444;border-color:#ff4444;color:#fff}
+    .q-btn.active-audio{background:#3a6bc4;border-color:#3a6bc4;color:#fff}
+    textarea{width:100%;min-height:120px;background:#111;border:1px solid #333;border-radius:8px;color:#e8e8e8;font-size:.88rem;padding:11px 13px;resize:vertical;outline:none;transition:border-color .2s;line-height:1.5}
+    textarea:focus{border-color:#ff4444}
+    textarea::placeholder{color:#444}
+    .hint{font-size:.72rem;color:#555;margin-top:5px;margin-bottom:14px}
+    .btn-primary{display:block;width:100%;padding:13px;background:#ff4444;border:none;border-radius:8px;color:#fff;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .15s}
+    .btn-primary:hover{background:#e03c3c}
+    .btn-primary:disabled{background:#552222;cursor:not-allowed;color:#999}
+    #jobs{width:100%;max-width:640px;margin-top:18px;display:flex;flex-direction:column}
+    .job{position:relative;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:13px 15px;margin-bottom:10px}
+    .btn-close-job{position:absolute;top:7px;right:9px;background:transparent;border:none;color:#444;font-size:.95rem;line-height:1;cursor:pointer;padding:4px 7px;border-radius:5px;display:none;transition:color .15s;-webkit-tap-highlight-color:transparent}
+    .btn-close-job:hover,.btn-close-job:active{color:#f66}
+    .job.done{border-color:#1e5c2e}
+    .job.error{border-color:#5c1e1e}
+    .job-title{font-size:.85rem;font-weight:500;word-break:break-all;margin-bottom:8px;color:#ddd;display:flex;align-items:baseline;flex-wrap:wrap;gap:0}
+    .job-index{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;background:#2a2a2a;color:#aaa;border-radius:5px;font-size:.7rem;font-weight:700;margin-right:8px;padding:0 5px;flex-shrink:0}
+    .job-quality{font-size:.68rem;padding:1px 6px;border-radius:20px;background:#2a2a2a;color:#666;margin-left:7px;flex-shrink:0}
+    .job-row{display:flex;align-items:center;gap:10px}
+    .progress-bar-wrap{flex:1;height:5px;background:#252525;border-radius:3px;overflow:hidden}
+    .progress-bar-fill{height:100%;background:#ff4444;border-radius:3px;width:0%;transition:width .35s}
+    .job.done .progress-bar-fill{background:#2ea44f}
+    .job-pct{font-size:.76rem;color:#777;min-width:34px;text-align:right}
+    .badge{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+    .badge-loading{background:#222;color:#777}
+    .badge-done{background:#1a4a24;color:#4caf50}
+    .badge-error{background:#4a1a1a;color:#f44}
+    .error-msg{margin-top:8px;font-size:.76rem;color:#f66;background:#2a1010;border-radius:6px;padding:8px 10px;word-break:break-word}
+    .btn-retry{margin-top:8px;padding:5px 13px;border:1px solid #5c1e1e;background:transparent;color:#f44;border-radius:6px;font-size:.78rem;cursor:pointer;transition:background .15s}
+    .btn-retry:hover{background:#2a1010}
+    .btn-save-phone{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:9px 18px;background:#1a2a40;border:1px solid #3a8cff;border-radius:7px;color:#5aafff;font-size:.84rem;font-weight:600;cursor:pointer;text-decoration:none;transition:background .15s}
+    .btn-save-phone:hover{background:#1e3555}
+    #btn-zip-wrap{width:100%;max-width:640px;display:none;margin-top:4px}
+    .btn-zip{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:#1a2a40;border:1px solid #3a8cff;border-radius:8px;color:#5aafff;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .15s}
+    .btn-zip:hover{background:#1e3555}
+    .btn-zip:disabled{opacity:.4;cursor:not-allowed}
+    .footer{font-size:.72rem;color:#444;margin-top:10px;text-align:center}
+    .footer code{color:#666}
+    @media (max-width:600px){
+      body{padding:12px 10px 50px;align-items:stretch}
+      h1{font-size:1.2rem;margin-bottom:16px;text-align:center}
+      .card{border-radius:10px;padding:14px 13px 13px;max-width:none}
+      .q-btn{min-width:44px;padding:9px 6px;min-height:40px;font-size:.78rem}
+      textarea{min-height:90px;font-size:.92rem}
+      .btn-primary{padding:15px;font-size:1rem;min-height:50px}
+      #jobs,#btn-zip-wrap{max-width:none}
+      .job{padding:12px 13px}
+      .btn-save-phone{width:100%;justify-content:center;padding:12px;margin-top:10px}
+      .btn-zip{padding:15px;font-size:.92rem;min-height:50px}
+      .btn-retry{padding:10px 16px;font-size:.82rem;min-height:40px}
+      .btn-close-job{padding:6px 10px;font-size:1.05rem;top:6px;right:6px}
+    }
+    @supports (padding: env(safe-area-inset-bottom)){
+      body{padding-bottom:calc(50px + env(safe-area-inset-bottom))}
+    }
+  </style>
+</head>
+<body>
+  <h1>YouTube Downloader</h1>
+  <div class="card">
+    <div class="section-label">Якість</div>
+    <div class="quality-picker">
+      <button class="q-btn" data-q="best" onclick="setQuality(this)">Найкраща</button>
+      <button class="q-btn" data-q="2160" onclick="setQuality(this)">4K</button>
+      <button class="q-btn" data-q="1080" onclick="setQuality(this)">1080p</button>
+      <button class="q-btn active" data-q="720" onclick="setQuality(this)">720p</button>
+      <button class="q-btn" data-q="480" onclick="setQuality(this)">480p</button>
+      <button class="q-btn" data-q="360" onclick="setQuality(this)">360p</button>
+      <button class="q-btn" data-q="audio" onclick="setQuality(this)">&#127925; MP3</button>
+    </div>
+    <div class="section-label">Посилання</div>
+    <textarea id="urls" placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/...&#10;(кожне посилання з нового рядка)"></textarea>
+    <div class="hint">Одне або декілька посилань — кожне з нового рядка</div>
+    <button class="btn-primary" id="btnDownload" onclick="startDownloads()">Завантажити</button>
+  </div>
+  <div id="jobs"></div>
+  <div id="btn-zip-wrap">
+    <button class="btn-zip" id="btnZip" onclick="downloadAllZip()">&#11015;&#65039; Завантажити все на телефон (ZIP)</button>
+  </div>
+  <p class="footer" id="footer-note">Файли автоматично видаляються через 2 години</p>
+  <script>
+    const activeJobs = {};
+    let selectedQuality = "720";
+    // всі завантажені задання: job_id -> done
+    const doneJobs = {};
+
+    const QUALITY_LABELS = {
+      best: "Найкраща", "2160": "4K", "1080": "1080p",
+      "720": "720p", "480": "480p", "360": "360p", audio: "MP3"
+    };
+
+    function setQuality(btn) {
+      document.querySelectorAll(".q-btn").forEach(b => b.classList.remove("active", "active-audio"));
+      btn.classList.add(btn.dataset.q === "audio" ? "active-audio" : "active");
+      selectedQuality = btn.dataset.q;
+    }
+
+    function startDownloads() {
+      const raw = document.getElementById("urls").value;
+      const urls = raw.split("\n").map(s => s.trim()).filter(Boolean);
+      if (!urls.length) return;
+      document.getElementById("btnDownload").disabled = true;
+      fetch("/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls, quality: selectedQuality })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
+          document.getElementById("btnDownload").disabled = false;
+          return;
+        }
+        data.job_ids.forEach((jid, i) => {
+          createJobCard(jid, urls[i], selectedQuality, i + 1);
+          activeJobs[jid] = { done: false };
+          doneJobs[jid] = false;
+        });
+        document.getElementById("urls").value = "";
+        document.getElementById("btnDownload").disabled = false;
+        pollJobs();
+      });
+    }
+
+    function createJobCard(jid, url, quality, index) {
+      const qlabel = QUALITY_LABELS[quality] || quality;
+      const el = document.createElement("div");
+      el.className = "job";
+      el.id = "job-" + jid;
+      el.innerHTML = `
+        <button class="btn-close-job" id="close-${jid}" onclick="dismissCard('${jid}')" title="Закрити">&#x2715;</button>
+        <div class="job-title">
+          <span class="job-index">${index}</span>
+          <span class="job-title-text">${escHtml(url)}</span>
+          <span class="job-quality">${escHtml(qlabel)}</span>
+        </div>
+        <div class="job-row">
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" id="fill-${jid}"></div></div>
+          <span class="job-pct" id="pct-${jid}">0%</span>
+          <span class="badge badge-loading" id="badge-${jid}">&#8230;</span>
+        </div>`;
+      document.getElementById("jobs").prepend(el);
+      return el;
+    }
+
+    function pollJobs() {
+      const pending = Object.entries(activeJobs).filter(([, v]) => !v.done).map(([k]) => k);
+      if (!pending.length) return;
+      const params = pending.map(id => "ids=" + encodeURIComponent(id)).join("&");
+      fetch("/status?" + params)
+        .then(r => r.json())
+        .then(data => {
+          let any = false;
+          for (const [jid, info] of Object.entries(data)) {
+            updateCard(jid, info);
+            if (info.status === "downloading") any = true;
+          }
+          if (any) setTimeout(pollJobs, 700);
+        })
+        .catch(() => setTimeout(pollJobs, 1500));
+    }
+
+    function updateCard(jid, info) {
+      const el = document.getElementById("job-" + jid);
+      if (!el) return;
+      const fill  = document.getElementById("fill-"  + jid);
+      const pct   = document.getElementById("pct-"   + jid);
+      const badge = document.getElementById("badge-" + jid);
+
+      if (info.title && info.title !== info.url) {
+        const tt = el.querySelector(".job-title-text");
+        if (tt) tt.textContent = info.title;
+      }
+
+      const num = parseFloat((info.progress || "0").replace("%", "")) || 0;
+
+      if (info.status === "done") {
+        activeJobs[jid] && (activeJobs[jid].done = true);
+        el.classList.add("done");
+        fill.style.width = "100%";
+        pct.textContent  = "100%";
+        badge.className  = "badge badge-done";
+        badge.textContent = "Готово";
+        const closeBtn = document.getElementById("close-" + jid);
+        if (closeBtn) closeBtn.style.display = "block";
+        if (!el.querySelector(".btn-save-phone")) {
+          const a = document.createElement("a");
+          a.className   = "btn-save-phone";
+          a.href        = "/file/" + jid;
+          a.textContent = "\u2b07\ufe0f Завантажити";
+          el.appendChild(a);
+          if (jid in doneJobs) {
+            doneJobs[jid] = true;
+            updateZipButton();
+          }
+        }
+      } else if (info.status === "error") {
+        activeJobs[jid] && (activeJobs[jid].done = true);
+        el.classList.add("error");
+        badge.className   = "badge badge-error";
+        badge.textContent = "Помилка";
+        const closeBtnErr = document.getElementById("close-" + jid);
+        if (closeBtnErr) closeBtnErr.style.display = "block";
+        fill.style.width  = "100%";
+        fill.style.background = "#f44";
+        pct.textContent   = "";
+        if (!el.querySelector(".error-msg")) {
+          const errDiv = document.createElement("div");
+          errDiv.className   = "error-msg";
+          errDiv.textContent = info.error || "Невідома помилка";
+          el.appendChild(errDiv);
+          const btn = document.createElement("button");
+          btn.className   = "btn-retry";
+          btn.textContent = "Спробувати ще раз";
+          btn.onclick     = () => retryJob(jid);
+          el.appendChild(btn);
+        }
+      } else {
+        fill.style.width  = num + "%";
+        pct.textContent   = info.progress || "0%";
+        badge.className   = "badge badge-loading";
+        badge.textContent = "\u2193";
+      }
+    }
+
+    function retryJob(jid) {
+      const el = document.getElementById("job-" + jid);
+      el.classList.remove("error");
+      const fill  = document.getElementById("fill-"  + jid);
+      const pct   = document.getElementById("pct-"   + jid);
+      const badge = document.getElementById("badge-" + jid);
+      fill.style.width = "0%";
+      fill.style.background = "";
+      pct.textContent   = "0%";
+      badge.className   = "badge badge-loading";
+      badge.textContent = "\u2026";
+      el.querySelector(".error-msg")?.remove();
+      el.querySelector(".btn-retry")?.remove();
+      el.querySelector(".btn-save-phone")?.remove();
+      activeJobs[jid] = { done: false };
+      doneJobs[jid] = false;
+      fetch("/retry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job_id: jid })
+      }).then(() => pollJobs());
+    }
+
+    function updateZipButton() {
+      const doneIds = Object.entries(doneJobs).filter(([, d]) => d).map(([k]) => k);
+      const wrap = document.getElementById("btn-zip-wrap");
+      const btn  = document.getElementById("btnZip");
+      if (doneIds.length >= 2) {
+        wrap.style.display = "block";
+        btn.textContent = `\u2b07\ufe0f Завантажити все (ZIP, ${doneIds.length} відео)`;
+      } else {
+        wrap.style.display = "none";
+      }
+    }
+
+    function downloadAllZip() {
+      const doneIds = Object.entries(doneJobs).filter(([, d]) => d).map(([k]) => k);
+      if (!doneIds.length) return;
+      const btn = document.getElementById("btnZip");
+      btn.disabled = true;
+      btn.textContent = "Пакуємо ZIP…";
+      fetch("/zip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job_ids: doneIds })
+      })
+      .then(r => {
+        if (!r.ok) throw new Error("Сервер повернув " + r.status);
+        return r.json();
+      })
+      .then(data => {
+        // Пряме посилання — iOS Safari завантажить нативно
+        window.location.href = "/zip-file/" + data.zip_id;
+        setTimeout(() => {
+          btn.disabled = false;
+          updateZipButton();
+        }, 3000);
+      })
+      .catch(err => {
+        alert("Помилка: " + err.message);
+        btn.disabled = false;
+        updateZipButton();
+      });
+    }
+
+    function dismissCard(jid) {
+      const el = document.getElementById("job-" + jid);
+      if (!el) return;
+      el.style.height = el.offsetHeight + "px";
+      el.style.overflow = "hidden";
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.style.transition = "height .3s ease, opacity .25s ease, margin-bottom .3s ease, padding-top .3s ease, padding-bottom .3s ease";
+          el.style.height = "0";
+          el.style.opacity = "0";
+          el.style.paddingTop = "0";
+          el.style.paddingBottom = "0";
+          el.style.marginBottom = "0";
+        });
+      });
+      setTimeout(() => {
+        el.remove();
+        if (jid in doneJobs) {
+          delete doneJobs[jid];
+          updateZipButton();
+        }
+      }, 320);
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    document.getElementById("urls").addEventListener("paste", function(e) {
+      const pasted = (e.clipboardData || window.clipboardData).getData("text").trim();
+      if (!pasted) return;
+      e.preventDefault();
+      const ta  = this;
+      const val = ta.value;
+      const sep = (val.length > 0 && !val.endsWith("\n")) ? "\n" : "";
+      const pos = ta.selectionStart;
+      ta.value = val.slice(0, pos) + sep + pasted + val.slice(ta.selectionEnd);
+      ta.selectionStart = ta.selectionEnd = pos + sep.length + pasted.length;
+    });
+  </script>
+</body>
+</html>
