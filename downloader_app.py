@@ -64,13 +64,13 @@ def _cleanup_loop():
 threading.Thread(target=_cleanup_loop, daemon=True).start()
 
 QUALITY_FORMATS: dict[str, tuple[str, str, bool]] = {
-    "best":  ("bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best",              "mp4",  False),
-    "2160":  ("bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=2160]+bestaudio[ext=m4a]/best",        "mp4",  False),
-    "1080":  ("bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio[ext=m4a]/best",        "mp4",  False),
-    "720":   ("bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio[ext=m4a]/best",          "mp4",  False),
-    "480":   ("bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio[ext=m4a]/best",          "mp4",  False),
-    "360":   ("bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio[ext=m4a]/best",          "mp4",  False),
-    "audio": ("bestaudio[ext=m4a]/bestaudio/best",                                                                         "mp3",  True),
+    "best":  ("bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best",                                          "mp4",  False),
+    "2160":  ("bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=2160]+bestaudio[ext=m4a]/bestvideo[height<=2160]+bestaudio/best", "mp4",  False),
+    "1080":  ("bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best", "mp4",  False),
+    "720":   ("bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best",    "mp4",  False),
+    "480":   ("bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/best",    "mp4",  False),
+    "360":   ("bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio/best",    "mp4",  False),
+    "audio": ("bestaudio[ext=m4a]/bestaudio/best",                                                                                                    "mp3",  True),
 }
 DEFAULT_QUALITY = "720"
 
