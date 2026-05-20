@@ -203,7 +203,6 @@
           const a = document.createElement("a");
           a.className   = "btn-save-phone";
           a.href        = "/file/" + jid;
-          a.onclick     = function(e) { e.preventDefault(); triggerDownload("/file/" + jid); };
           a.textContent = "\u2b07\ufe0f Завантажити";
           el.appendChild(a);
           if (jid in doneJobs) {
@@ -275,19 +274,6 @@
       }
     }
 
-    // В PWA-режимі (додано на екран) window.location.href веде у глухий кут —
-    // показуємо нижню панель з посиланням. У звичайному браузері — стандартна навігація.
-    function triggerDownload(url) {
-      if (window.navigator.standalone) {
-        const overlay = document.getElementById('dlOverlay');
-        const link    = document.getElementById('dlOverlayLink');
-        link.href = url;
-        overlay.style.display = 'flex';
-      } else {
-        window.location.href = url;
-      }
-    }
-
     function downloadAllZip() {
       const doneIds = Object.entries(doneJobs).filter(([, d]) => d).map(([k]) => k);
       if (!doneIds.length) return;
@@ -304,12 +290,11 @@
         return r.json();
       })
       .then(data => {
-        // Пряме посилання — iOS Safari завантажить нативно
-        triggerDownload("/zip-file/" + data.zip_id);
-        setTimeout(() => {
-          btn.disabled = false;
-          updateZipButton();
-        }, 3000);
+        // Показуємо посилання — користувач тапає сам, iOS не переходить на сторінку
+        const zipUrl = "/zip-file/" + data.zip_id;
+        btn.disabled  = false;
+        btn.innerHTML = `<a href="${zipUrl}" style="color:inherit;text-decoration:none;">⬇️ Скачати ZIP</a>`;
+        setTimeout(() => updateZipButton(), 35000);
       })
       .catch(err => {
         alert("Помилка: " + err.message);
@@ -358,24 +343,5 @@
       ta.selectionStart = ta.selectionEnd = pos + sep.length + pasted.length;
     });
   </script>
-
-  <!-- PWA download overlay -->
-  <div id="dlOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:flex-end;justify-content:center;"
-       onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:#1a1f2e;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:24px 20px 36px;text-align:center;">
-      <p style="color:#8899bb;margin:0 0 6px;font-size:.82rem;">Завантаження через Safari</p>
-      <p style="color:#cdd6f0;margin:0 0 20px;font-size:.93rem;line-height:1.4">
-        Натисніть <b>«Відкрити файл»</b>.<br>Safari завантажить його — потім закрийте Safari щоб повернутись.
-      </p>
-      <a id="dlOverlayLink" href="#"
-         style="display:block;padding:14px;background:#3a8cff;color:#fff;border-radius:11px;font-size:1rem;font-weight:700;text-decoration:none;margin-bottom:12px;">
-        ⬇️ Відкрити файл
-      </a>
-      <button onclick="document.getElementById('dlOverlay').style.display='none'"
-              style="background:none;border:none;color:#556;font-size:.88rem;cursor:pointer;padding:8px 20px;">
-        Закрити
-      </button>
-    </div>
-  </div>
 </body>
 </html>
