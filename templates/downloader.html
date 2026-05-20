@@ -276,10 +276,13 @@
     }
 
     // В PWA-режимі (додано на екран) window.location.href веде у глухий кут —
-    // відкриваємо файл у Safari. У звичайному браузері — стандартна навігація.
+    // показуємо нижню панель з посиланням. У звичайному браузері — стандартна навігація.
     function triggerDownload(url) {
       if (window.navigator.standalone) {
-        window.open(url, "_blank");
+        const overlay = document.getElementById('dlOverlay');
+        const link    = document.getElementById('dlOverlayLink');
+        link.href = url;
+        overlay.style.display = 'flex';
       } else {
         window.location.href = url;
       }
@@ -355,5 +358,24 @@
       ta.selectionStart = ta.selectionEnd = pos + sep.length + pasted.length;
     });
   </script>
+
+  <!-- PWA download overlay -->
+  <div id="dlOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:flex-end;justify-content:center;"
+       onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:#1a1f2e;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:24px 20px 36px;text-align:center;">
+      <p style="color:#8899bb;margin:0 0 6px;font-size:.82rem;">Завантаження через Safari</p>
+      <p style="color:#cdd6f0;margin:0 0 20px;font-size:.93rem;line-height:1.4">
+        Натисніть <b>«Відкрити файл»</b>.<br>Safari завантажить його — потім закрийте Safari щоб повернутись.
+      </p>
+      <a id="dlOverlayLink" href="#"
+         style="display:block;padding:14px;background:#3a8cff;color:#fff;border-radius:11px;font-size:1rem;font-weight:700;text-decoration:none;margin-bottom:12px;">
+        ⬇️ Відкрити файл
+      </a>
+      <button onclick="document.getElementById('dlOverlay').style.display='none'"
+              style="background:none;border:none;color:#556;font-size:.88rem;cursor:pointer;padding:8px 20px;">
+        Закрити
+      </button>
+    </div>
+  </div>
 </body>
 </html>

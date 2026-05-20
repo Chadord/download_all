@@ -38,7 +38,8 @@ os.makedirs(SERVE_FOLDER, exist_ok=True)
 
 _jobs: dict = {}
 _jobs_lock = threading.Lock()
-_zips: dict = {}   # zip_id -> filepath on disk
+_zips: dict = {}        # zip_id -> filepath on disk
+_url_to_job: dict = {}  # url -> job_id  (кеш для дедуплікації)
 
 FILE_TTL = 2 * 3600  # файли живуть 2 години
 
@@ -131,7 +132,7 @@ def _run_download(job_id: str, url: str, quality: str = DEFAULT_QUALITY, index: 
 
         # Авто-видалення файлу через 1 годину після завантаження
         if filepath:
-            def _delete_after_ttl(path=filepath, jid=job_id):
+            def _delete_after_ttl(path=filepath, jid=job_id, u=url):
                 time.sleep(3600)
                 try:
                     os.remove(path)
@@ -139,6 +140,8 @@ def _run_download(job_id: str, url: str, quality: str = DEFAULT_QUALITY, index: 
                     pass
                 with _jobs_lock:
                     _jobs.pop(jid, None)
+                    if _url_to_job.get(u) == jid:
+                        _url_to_job.pop(u, None)
             threading.Thread(target=_delete_after_ttl, daemon=True).start()
 
     except Exception as exc:
@@ -186,7 +189,23 @@ def start_downloads():
         return jsonify({"error": f"Непідтримуване джерело: {invalid[0]}"}), 400
 
     job_ids = []
+    seen_urls = set()  # дедуплікація в межах одного запиту
     for idx, url in enumerate(urls, start=1):
+        if url in seen_urls:
+            continue
+        seen_urls.add(url)
+
+        # Перевіряємо чи вже є активне завантаження для цього URL
+        with _jobs_lock:
+            existing_jid = _url_to_job.get(url)
+            if existing_jid and existing_jid in _jobs:
+                job = _jobs[existing_jid]
+                fp  = job.get("filepath")
+                if job["status"] == "downloading" or (
+                        job["status"] == "done" and fp and os.path.isfile(fp)):
+                    job_ids.append(existing_jid)
+                    continue
+
         job_id = str(uuid.uuid4())
         with _jobs_lock:
             _jobs[job_id] = {
@@ -194,6 +213,7 @@ def start_downloads():
                 "progress": "0%", "error": None, "quality": quality,
                 "index": idx, "filepath": None,
             }
+            _url_to_job[url] = job_id
         threading.Thread(target=_run_download,
                          args=(job_id, url, quality, idx),
                          daemon=True).start()
