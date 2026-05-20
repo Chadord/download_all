@@ -203,7 +203,6 @@
           const a = document.createElement("a");
           a.className   = "btn-save-phone";
           a.href        = "/file/" + jid;
-          a.target      = "_blank";
           a.textContent = "\u2b07\ufe0f Завантажити";
           el.appendChild(a);
           if (jid in doneJobs) {
@@ -292,7 +291,7 @@
       })
       .then(data => {
         // Пряме посилання — iOS Safari завантажить нативно
-        window.open("/zip-file/" + data.zip_id, "_blank");
+        window.location.href = "/zip-file/" + data.zip_id;
         setTimeout(() => {
           btn.disabled = false;
           updateZipButton();
