@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 _ALLOWED_HOSTS_RE = re.compile(
     r'^https?://'
     r'(?:(?:www\.)?youtube\.com|youtu\.be'
-    r'|(?:www\.)?tiktok\.com'
+    r'|(?:(?:www|vt|vm)\.)?tiktok\.com'
     r'|(?:www\.)?instagram\.com'
     r'|(?:(?:[a-z]{2}|www)\.)?pinterest\.com'
     r'|(?:www\.)?twitter\.com|(?:www\.)?x\.com'
@@ -92,7 +92,7 @@ def _run_download(job_id: str, url: str, quality: str = DEFAULT_QUALITY, index: 
     if audio_only:
         cmd += ["--extract-audio", "--audio-format", "mp3", "--audio-quality", "320K"]
     else:
-        cmd += ["--merge-output-format", merge_fmt]
+        cmd += ["--merge-output-format", merge_fmt, "--remux-video", merge_fmt]
     cmd.append(url)
 
     try:
