@@ -203,6 +203,7 @@
           const a = document.createElement("a");
           a.className   = "btn-save-phone";
           a.href        = "/file/" + jid;
+          a.onclick     = function(e) { e.preventDefault(); triggerDownload("/file/" + jid); };
           a.textContent = "\u2b07\ufe0f Завантажити";
           el.appendChild(a);
           if (jid in doneJobs) {
@@ -274,6 +275,16 @@
       }
     }
 
+    // В PWA-режимі (додано на екран) window.location.href веде у глухий кут —
+    // відкриваємо файл у Safari. У звичайному браузері — стандартна навігація.
+    function triggerDownload(url) {
+      if (window.navigator.standalone) {
+        window.open(url, "_blank");
+      } else {
+        window.location.href = url;
+      }
+    }
+
     function downloadAllZip() {
       const doneIds = Object.entries(doneJobs).filter(([, d]) => d).map(([k]) => k);
       if (!doneIds.length) return;
@@ -291,7 +302,7 @@
       })
       .then(data => {
         // Пряме посилання — iOS Safari завантажить нативно
-        window.location.href = "/zip-file/" + data.zip_id;
+        triggerDownload("/zip-file/" + data.zip_id);
         setTimeout(() => {
           btn.disabled = false;
           updateZipButton();
