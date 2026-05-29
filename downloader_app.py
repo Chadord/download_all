@@ -80,7 +80,7 @@ def _run_download(job_id: str, url: str, quality: str = DEFAULT_QUALITY, index: 
     """Запускає yt-dlp як subprocess — SEGV в C-бібліотеці не вбиває Flask."""
     fmt, merge_fmt, audio_only = QUALITY_FORMATS.get(quality, QUALITY_FORMATS[DEFAULT_QUALITY])
     folder  = SERVE_FOLDER
-    outtmpl = os.path.join(folder, f"{index} - %(title)s.%(ext)s")
+    outtmpl = os.path.join(folder, f"{job_id} - %(title)s.%(ext)s")
 
     cmd = [
         sys.executable, "-m", "yt_dlp",
@@ -117,11 +117,11 @@ def _run_download(job_id: str, url: str, quality: str = DEFAULT_QUALITY, index: 
                 _jobs[job_id]["error"]  = f"yt-dlp завершився з кодом {proc.returncode}"
             return
 
-        filepath = _find_file(folder, index)
+        filepath = _find_file(folder, job_id)
         title = url
         if filepath:
             base = os.path.splitext(os.path.basename(filepath))[0]
-            prefix = f"{index} - "
+            prefix = f"{job_id} - "
             title = base[len(prefix):] if base.startswith(prefix) else base
 
         with _jobs_lock:
@@ -150,8 +150,8 @@ def _run_download(job_id: str, url: str, quality: str = DEFAULT_QUALITY, index: 
             _jobs[job_id]["error"]  = str(exc)
 
 
-def _find_file(folder: str, index: int) -> str:
-    prefix = f"{index} - "
+def _find_file(folder: str, job_id: str) -> str:
+    prefix = f"{job_id} - "
     candidates = []
     try:
         for f in os.listdir(folder):
